@@ -3,19 +3,19 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>新码萌自学留言板</title>
+	<title><?php echo $data['title']; ?></title>
 	<link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="/static/css/index.css">
 </head>
 <body>
 	<div class="container">
  		<div class="bord">
-			<div class="title"><span>留言板</span></div>
+			<div class="title"><span><?php echo $data['title']; ?></span></div>
 			<div class="main">
 				<ul class="list-group">
                     <?php foreach($data['message_list'] as $el){ ?>
                         <a    <?php if($el['id']%10==0){ ?> class="list-group-item" <?php }  ?> class="<?php echo $el['class']; ?>" >
-                             <?php echo $el['content']; ?>
+                             <?php echo $el['tm_update'].' : '.$el['content']; ?>
                         </a>
                     <?php } ?>
 
@@ -24,8 +24,8 @@
 	    	<?php echo $page; ?>
 			<div class="buttom">
 				<form  id="msg" >
-					<input class="input" name="msg"></input><br/><br/>
-					<input class="inputs btn-lg btn-success" type="submit" value="提交">
+					<input class="input" name="msg" placeholder="请写下心中所想！"></input><br/><br/>
+					<input class="inputs btn-lg btn-success" type="submit"  value="提交">
 				</form>
 			</div>
  		</div>

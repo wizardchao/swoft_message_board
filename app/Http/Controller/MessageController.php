@@ -19,6 +19,8 @@ use Swoft\Http\Message\Server\Request;
 use Swoft\Db\DB;
 use App\Model\Entity\User;
 use App\Model\Entity\Message;
+use Swoft\Redis\Exception\RedisException;
+use Swoft\Redis\Redis;
 
 /**
  * Class MessageController
@@ -26,6 +28,7 @@ use App\Model\Entity\Message;
  */
 class MessageController
 {
+
     /**
      * @RequestMapping("/message[/{page}]")
      * @param int $page
@@ -39,7 +42,7 @@ class MessageController
         if ($request->isPost()) {   //Post传值
             // Do something
             $data = $request->post();
-            $msg = trim($request->post('msg'));
+            $msg = htmlspecialchars(trim($request->post('msg')));
             if (empty($msg)) {
                 $content=json_encode(['status'=> 100,'msg'=> '留言内容不能为空！',]);
                 return Context::mustGet()
@@ -63,9 +66,12 @@ class MessageController
                 ->withContent($content);
         }
 
-        $page=(int)$page?:1;
+        $page=(int)$page>0?$page:1;
         $page_size=10;
         $total_count=DB::table('message')->count();
+        if(ceil($total_count/$page_size)<$page){
+            $page=(int)ceil($total_count/$page_size);
+        }
         // $message_list = DB::table('message')->orderBy('tm_update', 'desc')->forPage($page, $page_size)->get();
         $message_list = Message::forPage($page, $page_size)->orderByDesc('tm_update')->get(['id', 'title','content','tm_update']);
 
@@ -77,12 +83,14 @@ class MessageController
                 'id'=> $id,
                 'title'=> $el->getTitle(),
                 'content'=> $el->getContent(),
+                'tm_update'=> $el['tm_update']?date('Y-m-d H:i:s',$el['tm_update']):'',
                 'class'=> getColorList($id),
             );
         }
 
         $url='/message/';
         $data = [
+            'title'=> '留言板',
             'message_list' => $list,
             'page'=> getPageList($page, $page_size, $total_count, $url),
         ];
@@ -104,6 +112,31 @@ class MessageController
         $id  = $message->save();
         $users = DB::table('message')->get();
         $content=json_encode($users);
+        return Context::mustGet()
+            ->getResponse()
+            ->withContentType(ContentType::HTML)
+            ->withContent($content);
+    }
+
+
+    /**
+     * @RequestMapping("/message/demo")
+     * @throws Throwable
+     */
+    public function demo(): Response
+    {
+        $page=2;
+        $key='message_board_demo:page:'.$page;
+        $list = Redis::get($key);
+        if(empty($list)){
+            $list=array(
+                'data'=> 1,
+                'demo'=> 2,
+            );
+            $list=json_encode($list);
+           Redis::set($key, $list);
+        }
+        $content=$list;
         return Context::mustGet()
             ->getResponse()
             ->withContentType(ContentType::HTML)
