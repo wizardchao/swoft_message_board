@@ -8,7 +8,6 @@ use Swoft\Db\Annotation\Mapping\Entity;
 use Swoft\Db\Annotation\Mapping\Id;
 use Swoft\Db\Eloquent\Model;
 
-
 /**
  * Class Message
  *
@@ -105,5 +104,19 @@ class Message extends Model
     public function setContent(?string $content): void
     {
         $this->content = $content;
+    }
+
+
+    /**
+     * [getTotalCount description]
+     * @param  array  $param [description]
+     * @return [type]        [description]
+     */
+    public static function getTotalCount($param=array())
+    {
+        if (!isset($param['status'])) {
+            $param['status']=1;
+        }
+        return $this->where($param)->count();
     }
 }

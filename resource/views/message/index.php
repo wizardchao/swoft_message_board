@@ -21,7 +21,7 @@
 
 				</ul>
 			</div>
-			<div class="page"><ul class="pagination"><li class="disabled"><span>&laquo;</span></li> <li class="active"><span>1</span></li><li><a href="/project/tpProject/message/public?page=2">2</a></li><li><a href="/project/tpProject/message/public?page=3">3</a></li><li><a href="/project/tpProject/message/public?page=4">4</a></li><li><a href="/project/tpProject/message/public?page=5">5</a></li><li><a href="/project/tpProject/message/public?page=6">6</a></li> <li><a href="/project/tpProject/message/public?page=2">&raquo;</a></li></ul></div>
+	    	<?php echo $page; ?>
 			<div class="buttom">
 				<form  id="msg" >
 					<input class="input" name="msg"></input>

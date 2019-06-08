@@ -36,23 +36,26 @@ class MessageController
     public function index(int $page): Response
     {
         $page=$page?:1;
-        $page_size=10;
+        $page_size=2;
+        $total_count=DB::table('message')->count();
+        // $total_count=Message::getTotalCount();
         $message_list = Message::forPage($page, $page_size)->get(['id', 'title','content'])->keyBy('id');
+
         /* @var Message $message */
         $list=array();
         foreach ($message_list as $id => $el) {
             $list[] = array(
-                'id'=> $el->getId(),
+                'id'=> $id,
                 'title'=> $el->getTitle(),
                 'content'=> $el->getContent(),
                 'class'=> getColorList($id),
             );
         }
+
+        $url='/message/';
         $data = [
             'message_list' => $list,
-            'repo' => 'https://github.com/swoft-cloud/swoft',
-            'doc' => 'https://swoft.org/docs',
-            'method' => __METHOD__,
+            'page'=> getPageList($page, $page_size, $total_count, $url),
         ];
 
         // 将会渲染 `resource/views/site/index.php` 文件
