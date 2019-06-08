@@ -38,17 +38,16 @@ class Message extends Model
     private $content;
 
     /**
-     * @Column()
-     *
+     * @Column(name="tm_create", prop="tmCreate")
      * @var int|null
      */
-    private $tm_create;
+    private $tmCreate;
 
     /**
-     * @Column()
+     * @Column(name="tm_update", prop="tmUpdate")
      * @var int|null
      */
-    private $tm_update;
+    private $tmUpdate;
 
     /**
      * @Column()
@@ -118,5 +117,41 @@ class Message extends Model
             $param['status']=1;
         }
         return $this->where($param)->count();
+    }
+
+
+    /**
+     * @param int|null $tmCreate
+     */
+    public function setTmCreate(?int $tmCreate): void
+    {
+        $this->tmCreate = $tmCreate;
+    }
+
+
+    /**
+     * @return int|null
+     */
+    public function getTmCreate(): ?int
+    {
+        return $this->tmCreate;
+    }
+
+
+    /**
+     * @return int|null
+     */
+    public function getTmUpdate(): ?int
+    {
+        return $this->tmUpdate;
+    }
+
+
+    /**
+     * @param int|null $tmUpdate
+     */
+    public function setTmUpdate(?int $tmUpdate): void
+    {
+        $this->tmUpdate = $tmUpdate;
     }
 }

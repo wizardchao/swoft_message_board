@@ -24,7 +24,7 @@
 	    	<?php echo $page; ?>
 			<div class="buttom">
 				<form  id="msg" >
-					<input class="input" name="msg"></input>
+					<input class="input" name="msg"></input><br/><br/>
 					<input class="inputs btn-lg btn-success" type="submit" value="提交">
 				</form>
 			</div>

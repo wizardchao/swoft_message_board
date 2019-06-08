@@ -35,15 +35,44 @@ class MessageController
      */
     public function index(int $page): Response
     {
-        $page=$page?:1;
-        $page_size=2;
+        $request = \Swoft\Context\Context::mustGet()->getRequest();
+        if ($request->isPost()) {   //Post传值
+            // Do something
+            $data = $request->post();
+            $msg = trim($request->post('msg'));
+            if (empty($msg)) {
+                $content=json_encode(['status'=> 100,'msg'=> '留言内容不能为空！',]);
+                return Context::mustGet()
+                    ->getResponse()
+                    ->withContentType(ContentType::HTML)
+                    ->withContent($content);
+            }
+
+            //入库
+            $message = Message::new();
+            $message->setTitle($msg);
+            $message->setContent($msg);
+            $curTime=time();
+            $message->setTmCreate($curTime);
+            $message->setTmUpdate($curTime);
+            $id  = $message->save();
+            $content=$id?json_encode(['status'=> 1,'msg'=> '留言成功！',]):json_encode(['status'=> 101,'msg'=> '留言失败！',]);
+            return Context::mustGet()
+                ->getResponse()
+                ->withContentType(ContentType::HTML)
+                ->withContent($content);
+        }
+
+        $page=(int)$page?:1;
+        $page_size=10;
         $total_count=DB::table('message')->count();
-        // $total_count=Message::getTotalCount();
-        $message_list = Message::forPage($page, $page_size)->get(['id', 'title','content'])->keyBy('id');
+        // $message_list = DB::table('message')->orderBy('tm_update', 'desc')->forPage($page, $page_size)->get();
+        $message_list = Message::forPage($page, $page_size)->orderByDesc('tm_update')->get(['id', 'title','content','tm_update']);
 
         /* @var Message $message */
         $list=array();
-        foreach ($message_list as $id => $el) {
+        foreach ($message_list as  $el) {
+            $id=$el->getId();
             $list[] = array(
                 'id'=> $id,
                 'title'=> $el->getTitle(),
@@ -70,7 +99,7 @@ class MessageController
     public function add(): Response
     {
         $message = Message::new();
-        $message->setTitle('测试');
+        $message->setTitle('测试34565');
         $message->setContent('this my desc');
         $id  = $message->save();
         $users = DB::table('message')->get();
