@@ -22,12 +22,22 @@ use App\Model\Entity\Message;
 use Swoft\Redis\Exception\RedisException;
 use Swoft\Redis\Redis;
 
+
 /**
  * Class MessageController
  * @Controller()
  */
 class MessageController
 {
+    private $client_id;
+    private $client_secret;
+    private $client_callback;
+
+    public function __construct(){
+        $this->client_id=env('github_client_id');
+        $this->client_secret=env('github_client_secret');
+        $this->client_callback=env('github_client_callback');
+    }
 
     /**
      * @RequestMapping("/message[/{page}]")
@@ -69,7 +79,7 @@ class MessageController
         $page=(int)$page>0?$page:1;
         $page_size=10;
         $total_count=DB::table('message')->count();
-        if(ceil($total_count/$page_size)<$page){
+        if (ceil($total_count/$page_size)<$page) {
             $page=(int)ceil($total_count/$page_size);
         }
         // $message_list = DB::table('message')->orderBy('tm_update', 'desc')->forPage($page, $page_size)->get();
@@ -83,13 +93,15 @@ class MessageController
                 'id'=> $id,
                 'title'=> $el->getTitle(),
                 'content'=> $el->getContent(),
-                'tm_update'=> $el['tm_update']?date('Y-m-d H:i:s',$el['tm_update']):'',
+                'tm_update'=> $el['tm_update']?date('Y-m-d H:i:s', $el['tm_update']):'',
                 'class'=> getColorList($id),
             );
         }
 
         $url='/message/';
+        $redirect_url='https://github.com/login/oauth/authorize?client_id='.$this->client_id.'&redirect_uri='.$this->client_callback;
         $data = [
+            'url'=> $redirect_url,
             'title'=> '留言板',
             'message_list' => $list,
             'page'=> getPageList($page, $page_size, $total_count, $url),
@@ -125,21 +137,79 @@ class MessageController
      */
     public function demo(): Response
     {
-        $page=2;
-        $key='message_board_demo:page:'.$page;
-        $list = Redis::get($key);
-        if(empty($list)){
-            $list=array(
-                'data'=> 1,
-                'demo'=> 2,
-            );
-            $list=json_encode($list);
-           Redis::set($key, $list);
-        }
-        $content=$list;
+        // $page=2;
+        // $key='message_board_demo:page:'.$page;
+        // $list = Redis::get($key);
+        // if (empty($list)) {
+        //     $list=array(
+        //         'data'=> 1,
+        //         'demo'=> 2,
+        //     );
+        //     $list=json_encode($list);
+        //     Redis::set($key, $list);
+        // }
+        // $content=$list;
+        ob_start();
+        setcookie('test_key','111',time()+3600);
+        $request = \Swoft\Context\Context::mustGet()->getRequest();
+        $list=['github_client_id'=>$this->client_id,];
+
+        $content=json_encode($list);
         return Context::mustGet()
             ->getResponse()
             ->withContentType(ContentType::HTML)
             ->withContent($content);
+    }
+
+
+    /**
+     * @RequestMapping("callback")
+     * @throws Throwable
+     */
+    public function callback(): Response
+    {
+        $request = \Swoft\Context\Context::mustGet()->getRequest();
+        $cookie_list=$request->cookie();
+        $key='github:user:';
+        // if(Redis::get($key)){
+        //     $response = \Swoft\Context\Context::mustGet()->getResponse();
+        //     return $response->redirect("/message", 302);
+        // }
+
+        $code=$request->get('code');
+        if (isset($code) && $code) {
+            $access_token_url = 'https://github.com/login/oauth/access_token';
+            $params = array(
+                'client_id'     => $this->client_id,
+                'client_secret' => $this->client_secret,
+                'code'          => $code,
+            );
+            $access_token = getHttpResponsePOST($access_token_url, $params);
+            if ($access_token) {
+                $info_url = 'https://api.github.com/user?'.$access_token;
+                $data = array();
+                parse_str($access_token, $data);
+                $token = $data['access_token'];
+                $url = "https://api.github.com/user?access_token=".$token;
+                $headers[] = 'Authorization: token '.$token;
+                $headers[] = "User-Agent: message_board_demo";
+                $result = getHttpResponseGET($info_url, $headers);
+                $info = json_decode($result, true);
+                if (isset($info['id'])) {
+                    // Redis::set($key, (string)$info['id'],7200);
+                    $response = \Swoft\Context\Context::mustGet()->getResponse();
+                    $swoole_response=new \Swoole\Http\Response();
+                    $swoole_response->cookie($key,(string)$info['id']);
+                    $response->setCoResponse($swoole_response);
+                    return $response->redirect("/message", 302);
+                }
+            }
+        }
+
+        $content=array('status'=> 111,'msg'=> '登录失败！',);
+        return Context::mustGet()
+            ->getResponse()
+            ->withContentType(ContentType::HTML)
+            ->withContent(json_encode($content));
     }
 }

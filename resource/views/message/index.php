@@ -24,8 +24,9 @@
 	    	<?php echo $page; ?>
 			<div class="buttom">
 				<form  id="msg" >
-					<input class="input" name="msg" placeholder="请写下心中所想！"></input><br/><br/>
-					<input class="inputs btn-lg btn-success" type="submit"  value="提交">
+					<input class="input" name="msg" placeholder="请吐槽！😊"></input><br/>
+					<input class="inputs btn-lg btn-success" style="margin-top:10px;" type="submit"  value="提交">
+					<input class="inputs btn-lg btn-success"  type="button"   onclick="<?php echo 'location='."'".$data['url']."'"; ?>" value="登录">
 				</form>
 			</div>
  		</div>
