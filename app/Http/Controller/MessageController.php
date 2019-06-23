@@ -22,7 +22,6 @@ use App\Model\Entity\Message;
 use Swoft\Redis\Exception\RedisException;
 use Swoft\Redis\Redis;
 
-
 /**
  * Class MessageController
  * @Controller()
@@ -33,7 +32,8 @@ class MessageController
     private $client_secret;
     private $client_callback;
 
-    public function __construct(){
+    public function __construct()
+    {
         $this->client_id=env('github_client_id');
         $this->client_secret=env('github_client_secret');
         $this->client_callback=env('github_client_callback');
@@ -49,8 +49,20 @@ class MessageController
     public function index(int $page): Response
     {
         $request = \Swoft\Context\Context::mustGet()->getRequest();
+        $cookieParams=$request->getCookieParams();
+        $unique_code=isset($cookieParams['code'])?$cookieParams['code']:'';
+        $key='message:github:user:'.$unique_code;
+        $is_login=$unique_code && Redis::get($key)?1:0;
+
         if ($request->isPost()) {   //Post传值
             // Do something
+            if($is_login==0){
+                $content=array('status'=> 112,'msg'=> '尚未登录！',);
+                return Context::mustGet()
+                    ->getResponse()
+                    ->withContentType(ContentType::HTML)
+                    ->withContent(json_encode($content));
+            }
             $data = $request->post();
             $msg = htmlspecialchars(trim($request->post('msg')));
             if (empty($msg)) {
@@ -105,6 +117,7 @@ class MessageController
             'title'=> '留言板',
             'message_list' => $list,
             'page'=> getPageList($page, $page_size, $total_count, $url),
+            'is_login'=> $is_login,
         ];
 
         // 将会渲染 `resource/views/site/index.php` 文件
@@ -137,28 +150,17 @@ class MessageController
      */
     public function demo(): Response
     {
-        // $page=2;
-        // $key='message_board_demo:page:'.$page;
-        // $list = Redis::get($key);
-        // if (empty($list)) {
-        //     $list=array(
-        //         'data'=> 1,
-        //         'demo'=> 2,
-        //     );
-        //     $list=json_encode($list);
-        //     Redis::set($key, $list);
-        // }
-        // $content=$list;
-        ob_start();
-        setcookie('test_key','111',time()+3600);
+        // $response->detach();
+        // $response->cookie('key','123',3600);
         $request = \Swoft\Context\Context::mustGet()->getRequest();
-        $list=['github_client_id'=>$this->client_id,];
-
-        $content=json_encode($list);
+        $header = $request->getCookieParams();
+        $content=array(
+            'code'=> isset($header['code'])?$header['code']:'',
+        );
         return Context::mustGet()
             ->getResponse()
             ->withContentType(ContentType::HTML)
-            ->withContent($content);
+           ->withData($content);
     }
 
 
@@ -169,12 +171,13 @@ class MessageController
     public function callback(): Response
     {
         $request = \Swoft\Context\Context::mustGet()->getRequest();
-        $cookie_list=$request->cookie();
-        $key='github:user:';
-        // if(Redis::get($key)){
-        //     $response = \Swoft\Context\Context::mustGet()->getResponse();
-        //     return $response->redirect("/message", 302);
-        // }
+        $cookieParams=$request->getCookieParams();
+        $unique_code=isset($cookieParams['code'])?$cookieParams['code']:'';
+        $key='message:github:user:'.$unique_code;
+        if($unique_code && Redis::get($key)){
+            $response = \Swoft\Context\Context::mustGet()->getResponse();
+            return $response->redirect("/message/2", 302);
+        }
 
         $code=$request->get('code');
         if (isset($code) && $code) {
@@ -196,12 +199,11 @@ class MessageController
                 $result = getHttpResponseGET($info_url, $headers);
                 $info = json_decode($result, true);
                 if (isset($info['id'])) {
-                    // Redis::set($key, (string)$info['id'],7200);
+                    $key='message:github:user:'.$code;
+                    Redis::set($key, (string)$info['id'],7200);
                     $response = \Swoft\Context\Context::mustGet()->getResponse();
-                    $swoole_response=new \Swoole\Http\Response();
-                    $swoole_response->cookie($key,(string)$info['id']);
-                    $response->setCoResponse($swoole_response);
-                    return $response->redirect("/message", 302);
+                    $cookie_set='code='.$code;
+                    return $response->withHeader("Set-Cookie", $cookie_set)->redirect("/message", 302);
                 }
             }
         }

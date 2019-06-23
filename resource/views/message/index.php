@@ -24,9 +24,11 @@
 	    	<?php echo $page; ?>
 			<div class="buttom">
 				<form  id="msg" >
-					<input class="input" name="msg" placeholder="请吐槽！😊"></input><br/>
+					<?php if($data['is_login']==0){ ?><input class="inputs btn-lg btn-success"  type="button"   onclick="<?php echo 'location='."'".$data['url']."'"; ?>" value="GITHUB登录">
+				<?php }else{ ?>
 					<input class="inputs btn-lg btn-success" style="margin-top:10px;" type="submit"  value="提交">
-					<input class="inputs btn-lg btn-success"  type="button"   onclick="<?php echo 'location='."'".$data['url']."'"; ?>" value="登录">
+                	<input class="input" name="msg" placeholder="请吐槽！😊"></input><br/>
+				<?php } ?>
 				</form>
 			</div>
  		</div>
